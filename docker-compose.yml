@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  ai-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_engineer_agent
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEFAULT_PROVIDER=gemini
+      - ENABLE_NEO4J=true
+      - NEO4J_URI=bolt://neo4j-db:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=secretpassword
+    volumes:
+      - ./workspaces:/app/workspaces
+    depends_on:
+      - neo4j-db
+
+  neo4j-db:
+    image: neo4j:5-community
+    container_name: ai_agent_neo4j
+    ports:
+      - "7474:7474" # HTTP Browser
+      - "7687:7687" # Bolt Protocol
+    environment:
+      - NEO4J_AUTH=neo4j/secretpassword
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  neo4j_data:

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Software Engineer Agent</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Vis-Network for Graph Visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Prism.js for Code Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Header -->
+        <header class="navbar">
+            <div class="brand">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="brand-text">
+                    <h1>AI Engineer Agent</h1>
+                    <span class="badge">Autonomous v1.0</span>
+                </div>
+            </div>
+
+            <div class="header-controls">
+                <div class="control-group">
+                    <label><i class="fa-solid fa-brain"></i> LLM Provider:</label>
+                    <select id="provider-select" class="styled-select">
+                        <option value="openai">OpenAI (GPT-4o)</option>
+                        <option value="anthropic">Claude 3.5 Sonnet</option>
+                        <option value="gemini" selected>Google Gemini 2.5</option>
+                        <option value="ollama">Ollama (Local LLM)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <button id="settings-btn" class="btn btn-secondary">
+                        <i class="fa-solid fa-key"></i> API Keys & Settings
+                    </button>
+                </div>
+
+                <div class="system-status">
+                    <span class="status-dot online"></span>
+                    <span id="backend-status">Backend Connected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="main-layout">
+            <!-- Sidebar: Repository Ingestion & File Browser -->
+            <aside class="sidebar">
+                <div class="panel-section repo-input-card">
+                    <h3><i class="fa-brands fa-github"></i> Repository Setup</h3>
+                    <div class="input-wrapper">
+                        <input type="text" id="repo-url-input" placeholder="GitHub URL or local path (e.g. owner/repo)" value="">
+                        <button id="clone-btn" class="btn btn-primary">
+                            <i class="fa-solid fa-download"></i> Ingest
+                        </button>
+                    </div>
+                    <div id="active-repo-badge" class="active-repo-badge hidden">
+                        <i class="fa-solid fa-folder-open"></i> <span id="active-repo-name">No repo loaded</span>
+                    </div>
+                </div>
+
+                <div class="panel-section file-tree-card">
+                    <div class="tree-header">
+                        <h3><i class="fa-solid fa-network-wired"></i> Workspace Explorer</h3>
+                        <input type="text" id="file-search-input" placeholder="Search files..." class="search-box">
+                    </div>
+                    <div id="file-tree-container" class="file-tree-container">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-code-branch"></i>
+                            <p>Ingest a repository to view file structure</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Tabs -->
+            <main class="content-area">
+                <nav class="tab-bar">
+                    <button class="tab-btn active" data-tab="architecture">
+                        <i class="fa-solid fa-diagram-project"></i> Architecture Graph
+                    </button>
+                    <button class="tab-btn" data-tab="code-explainer">
+                        <i class="fa-solid fa-code"></i> Code Explainer
+                    </button>
+                    <button class="tab-btn" data-tab="bug-fixer">
+                        <i class="fa-solid fa-bug"></i> Bug Hunter & Fixer
+                    </button>
+                    <button class="tab-btn" data-tab="unit-tests">
+                        <i class="fa-solid fa-vial"></i> Unit Test Suite
+                    </button>
+                    <button class="tab-btn" data-tab="pr-review">
+                        <i class="fa-solid fa-code-pull-request"></i> PR Reviewer & Creator
+                    </button>
+                </nav>
+
+                <!-- Tab 1: Architecture Knowledge Graph -->
+                <div id="tab-architecture" class="tab-content active">
+                    <div class="action-banner">
+                        <div class="banner-text">
+                            <h2>Repository Architecture & Dependency Graph</h2>
+                            <p>Parses AST, extracts symbol relationships, and constructs a network graph of files and functions.</p>
+                        </div>
+                        <button id="analyze-arch-btn" class="btn btn-accent">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze Architecture
+                        </button>
+                    </div>
+
+                    <div class="arch-grid">
+                        <div class="card graph-card">
+                            <div class="card-header">
+                                <h3>Dependency Knowledge Graph</h3>
+                                <div id="graph-stats" class="graph-stats">Nodes: 0 | Edges: 0</div>
+                            </div>
+                            <div id="graph-container" class="graph-container">
+                                <div class="empty-state">Click "Analyze Architecture" to build graph</div>
+                            </div>
+                        </div>
+
+                        <div class="card markdown-card">
+                            <div class="card-header">
+                                <h3>Architectural Breakdown</h3>
+                            </div>
+                            <div id="arch-output" class="markdown-body">
+                                <p class="placeholder-text">Architectural explanation report will render here...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Code Explainer -->
+                <div id="tab-code-explainer" class="tab-content">
+                    <div class="action-banner">
+                        <div class="banner-text">
+                            <h2>Deep Code Explainer</h2>
+                            <p>Select any file from the explorer to view syntax-highlighted code and generate AI explanations.</p>
+                        </div>
+                        <button id="explain-code-btn" class="btn btn-accent">
+                            <i class="fa-solid fa-lightbulb"></i> Explain Selected File
+                        </button>
+                    </div>
+
+                    <div class="code-explainer-grid">
+                        <div class="card code-card">
+                            <div class="card-header">
+                                <h3 id="current-file-name"><i class="fa-regular fa-file-code"></i> Select a file</h3>
+                            </div>
+                            <pre class="code-pre"><code id="code-viewer" class="language-python">// Select a file from the left sidebar to read content...</code></pre>
+                        </div>
+
+                        <div class="card markdown-card">
+                            <div class="card-header">
+                                <h3>AI Code Breakdown</h3>
+                            </div>
+                            <div id="code-explain-output" class="markdown-body">
+                                <p class="placeholder-text">Detailed file breakdown will appear here...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Bug Hunter & Fixer -->
+                <div id="tab-bug-fixer" class="tab-content">
+                    <div class="action-banner">
+                        <div class="banner-text">
+                            <h2>Autonomous Bug Fixer</h2>
+                            <p>Describe the issue or paste a traceback error. The agent will locate candidate code, generate a patch, and update the codebase.</p>
+                        </div>
+                    </div>
+
+                    <div class="bug-fixer-layout">
+                        <div class="card bug-input-card">
+                            <h3><i class="fa-solid fa-triangle-exclamation"></i> Issue / Error Description</h3>
+                            <textarea id="bug-issue-input" placeholder="e.g. ValueError: missing arg in parse_data function when payload is empty..."></textarea>
+                            <div class="form-row">
+                                <input type="text" id="bug-target-file" placeholder="Target file (optional, e.g. backend/main.py)">
+                                <button id="fix-bug-btn" class="btn btn-primary">
+                                    <i class="fa-solid fa-wrench"></i> Generate & Apply Bug Fix
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card diff-card">
+                            <div class="card-header">
+                                <h3>Generated Code Patch & Strategy</h3>
+                                <span id="bug-fix-status" class="badge">Awaiting Issue Input</span>
+                            </div>
+                            <div id="bug-fix-explanation" class="markdown-body">
+                                <p class="placeholder-text">Fix explanation strategy will appear here...</p>
+                            </div>
+                            <div class="diff-split-container">
+                                <div class="diff-pane">
+                                    <h4>Original Snippet</h4>
+                                    <pre><code id="diff-original" class="language-python">// Original code snippet...</code></pre>
+                                </div>
+                                <div class="diff-pane">
+                                    <h4>Patched Snippet</h4>
+                                    <pre><code id="diff-fixed" class="language-python">// Fixed replacement code snippet...</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Unit Test Suite -->
+                <div id="tab-unit-tests" class="tab-content">
+                    <div class="action-banner">
+                        <div class="banner-text">
+                            <h2>Automated Unit Test Generator</h2>
+                            <p>Generates high-coverage pytest or jest test suites with mocks and edge case assertions.</p>
+                        </div>
+                        <button id="generate-tests-btn" class="btn btn-accent">
+                            <i class="fa-solid fa-vial-circle-check"></i> Generate Tests
+                        </button>
+                    </div>
+
+                    <div class="card test-card">
+                        <div class="card-header">
+                            <h3 id="test-file-title">Generated Test File Path</h3>
+                            <button id="copy-test-btn" class="btn btn-secondary btn-sm"><i class="fa-regular fa-copy"></i> Copy Code</button>
+                        </div>
+                        <pre class="code-pre"><code id="test-code-viewer" class="language-python">// Unit tests will render here...</code></pre>
+                    </div>
+                </div>
+
+                <!-- Tab 5: PR Reviewer & Automated Creator -->
+                <div id="tab-pr-review" class="tab-content">
+                    <div class="pr-grid">
+                        <!-- PR Review Section -->
+                        <div class="card pr-review-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-magnifying-glass"></i> Code Review for PRs / Diff</h3>
+                                <button id="review-pr-btn" class="btn btn-primary btn-sm">
+                                    <i class="fa-solid fa-paper-plane"></i> Review Diff
+                                </button>
+                            </div>
+                            <textarea id="pr-diff-input" placeholder="Paste git diff or proposed code changes here..."></textarea>
+                            <div id="pr-review-output" class="markdown-body">
+                                <p class="placeholder-text">Code review evaluation report will render here...</p>
+                            </div>
+                        </div>
+
+                        <!-- Automated PR Opener Section -->
+                        <div class="card pr-creator-card">
+                            <div class="card-header">
+                                <h3><i class="fa-brands fa-github"></i> Open Pull Request Automatically</h3>
+                            </div>
+                            <form id="create-pr-form" class="pr-form">
+                                <div class="form-group">
+                                    <label>GitHub Repository (owner/repo):</label>
+                                    <input type="text" id="pr-owner-repo" placeholder="e.g. octocat/Hello-World" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>New Branch Name:</label>
+                                    <input type="text" id="pr-branch-name" placeholder="e.g. ai-fix-user-auth" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Pull Request Title:</label>
+                                    <input type="text" id="pr-title" placeholder="e.g. Fix authentication token verification" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>PR Description Body:</label>
+                                    <textarea id="pr-body" placeholder="Describe the automated changes..."></textarea>
+                                </div>
+                                <button type="submit" id="submit-pr-btn" class="btn btn-accent btn-block">
+                                    <i class="fa-solid fa-code-branch"></i> Create GitHub Pull Request
+                                </button>
+                            </form>
+                            <div id="pr-create-status" class="pr-status-box hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for Settings & API Keys -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-sliders"></i> System Settings & API Keys</h2>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>OpenAI API Key:</label>
+                    <input type="password" id="modal-openai-key" placeholder="sk-...">
+                </div>
+                <div class="form-group">
+                    <label>Anthropic API Key:</label>
+                    <input type="password" id="modal-anthropic-key" placeholder="sk-ant-...">
+                </div>
+                <div class="form-group">
+                    <label>Google Gemini API Key:</label>
+                    <input type="password" id="modal-gemini-key" placeholder="AIza...">
+                </div>
+                <div class="form-group">
+                    <label>GitHub Personal Access Token (for PR creation):</label>
+                    <input type="password" id="modal-github-token" placeholder="ghp_...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
