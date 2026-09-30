@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ai-software-engineer-agent
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: HOST
+        value: 0.0.0.0
+      - key: DEFAULT_PROVIDER
+        value: gemini
+      - key: ENABLE_NEO4J
+        value: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
