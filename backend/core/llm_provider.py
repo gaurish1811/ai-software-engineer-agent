@@ -70,15 +70,15 @@ class LLMProvider:
         if not key:
             raise ValueError("Gemini API key missing. Please configure GEMINI_API_KEY in settings or environment.")
 
-        from google import genai
-        client = genai.Client(api_key=key)
+        import google.generativeai as genai
+        genai.configure(api_key=key)
         model_name = self.model or settings.GEMINI_MODEL
 
-        full_prompt = f"{system_prompt}\n\nTask:\n{prompt}"
-        response = client.models.generate_content(
-            model=model_name,
-            contents=full_prompt
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            system_instruction=system_prompt
         )
+        response = model.generate_content(prompt)
         return response.text or ""
 
     def _call_ollama(self, prompt: str, system_prompt: str) -> str:
