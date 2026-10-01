@@ -275,13 +275,15 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderVisGraph(graphData) {
         const container = elements.graphContainer;
         container.innerHTML = "";
+        container.style.height = "420px";  // vis.js needs explicit height
 
         const nodes = new vis.DataSet(graphData.nodes.map(n => ({
             id: n.id,
             label: n.label,
             color: n.group === "file" ? "#38bdf8" : (n.group === "class" ? "#a855f7" : "#34d399"),
             shape: n.group === "file" ? "box" : "ellipse",
-            font: { color: "#ffffff", face: "Inter" }
+            font: { color: "#ffffff", face: "Inter" },
+            size: n.group === "file" ? 20 : 12
         })));
 
         const edges = new vis.DataSet(graphData.edges.map(e => ({
@@ -295,11 +297,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const options = {
             physics: {
                 solver: "forceAtlas2Based",
-                forceAtlas2Based: { gravitationalConstant: -30, centralGravity: 0.005, springLength: 100 }
-            }
+                forceAtlas2Based: { gravitationalConstant: -30, centralGravity: 0.005, springLength: 100 },
+                stabilization: { iterations: 150 }
+            },
+            interaction: { hover: true, zoomView: true, dragView: true }
         };
 
         state.graphNetwork = new vis.Network(container, data, options);
+        state.graphNetwork.once("stabilized", () => state.graphNetwork.fit());
     }
 
     // TAB 2: Code Explainer
