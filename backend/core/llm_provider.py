@@ -70,16 +70,21 @@ class LLMProvider:
         if not key:
             raise ValueError("Gemini API key missing. Please configure GEMINI_API_KEY in settings or environment.")
 
-        import google.generativeai as genai
-        genai.configure(api_key=key)
         model_name = self.model or settings.GEMINI_MODEL
+        url = f"https://generativelanguage.googleapis.com/v1/models/{model_name}:generateContent"
 
-        model = genai.GenerativeModel(
-            model_name=model_name,
-            system_instruction=system_prompt
-        )
-        response = model.generate_content(prompt)
-        return response.text or ""
+        payload = {
+            "system_instruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 8192}
+        }
+
+        with httpx.Client(timeout=120.0) as client:
+            resp = client.post(url, params={"key": key}, json=payload)
+            if resp.status_code != 200:
+                raise ValueError(f"Gemini API error ({resp.status_code}): {resp.text}")
+            data = resp.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"]
 
     def _call_ollama(self, prompt: str, system_prompt: str) -> str:
         model_name = self.model or settings.OLLAMA_MODEL
