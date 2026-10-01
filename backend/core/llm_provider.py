@@ -71,7 +71,10 @@ class LLMProvider:
             raise ValueError("Gemini API key missing. Please configure GEMINI_API_KEY in settings or environment.")
 
         model_name = self.model or settings.GEMINI_MODEL
-        url = f"https://generativelanguage.googleapis.com/v1/models/{model_name}:generateContent"
+
+        # Try multiple models in order of availability
+        models_to_try = [model_name, "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"]
+        models_to_try = list(dict.fromkeys(models_to_try))  # deduplicate preserving order
 
         payload = {
             "system_instruction": {"parts": [{"text": system_prompt}]},
@@ -79,12 +82,24 @@ class LLMProvider:
             "generationConfig": {"temperature": 0.2, "maxOutputTokens": 8192}
         }
 
+        # Detect key type: OAuth token (AQ...) vs API key (AIza...)
+        is_oauth = key.startswith("AQ.") or key.startswith("ya29.")
+        last_error = ""
+
         with httpx.Client(timeout=120.0) as client:
-            resp = client.post(url, params={"key": key}, json=payload)
-            if resp.status_code != 200:
-                raise ValueError(f"Gemini API error ({resp.status_code}): {resp.text}")
-            data = resp.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
+            for api_version in ["v1beta", "v1"]:
+                for m in models_to_try:
+                    url = f"https://generativelanguage.googleapis.com/{api_version}/models/{m}:generateContent"
+                    if is_oauth:
+                        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+                        resp = client.post(url, headers=headers, json=payload)
+                    else:
+                        resp = client.post(url, params={"key": key}, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        return data["candidates"][0]["content"]["parts"][0]["text"]
+                    last_error = resp.text
+        raise ValueError(f"Gemini API error — no working model found. Last error: {last_error}")
 
     def _call_ollama(self, prompt: str, system_prompt: str) -> str:
         model_name = self.model or settings.OLLAMA_MODEL
