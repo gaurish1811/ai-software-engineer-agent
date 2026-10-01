@@ -113,49 +113,80 @@ def get_codebase_graph(repo_path: str):
 
 @router.post("/agent/explain-arch")
 def explain_architecture(req: ExplainArchRequest):
-    llm = LLMProvider(provider=req.provider, api_key=req.api_key)
-    res = agent_engine.explain_architecture(req.repo_path, llm)
-    if res.get("status") == "error":
-        raise HTTPException(status_code=500, detail=res.get("message"))
-    return res
+    try:
+        llm = LLMProvider(provider=req.provider, api_key=req.api_key)
+        res = agent_engine.explain_architecture(req.repo_path, llm)
+        if res.get("status") == "error":
+            raise HTTPException(status_code=500, detail=res.get("message"))
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/agent/explain-code")
 def explain_code(req: ExplainCodeRequest):
-    llm = LLMProvider(provider=req.provider, api_key=req.api_key)
-    res = agent_engine.explain_code(req.repo_path, req.target_file, llm)
-    return res
+    try:
+        llm = LLMProvider(provider=req.provider, api_key=req.api_key)
+        res = agent_engine.explain_code(req.repo_path, req.target_file, llm)
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/agent/fix-bug")
 def fix_bug(req: FixBugRequest):
-    llm = LLMProvider(provider=req.provider, api_key=req.api_key)
-    res = agent_engine.fix_bug(req.repo_path, req.issue_description, llm, req.target_file)
-    if res.get("status") == "error":
-        raise HTTPException(status_code=500, detail=res.get("message"))
-    return res
+    try:
+        llm = LLMProvider(provider=req.provider, api_key=req.api_key)
+        res = agent_engine.fix_bug(req.repo_path, req.issue_description, llm, req.target_file)
+        if res.get("status") == "error":
+            raise HTTPException(status_code=500, detail=res.get("message"))
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/agent/generate-tests")
 def generate_tests(req: GenerateTestsRequest):
-    llm = LLMProvider(provider=req.provider, api_key=req.api_key)
-    res = agent_engine.generate_unit_tests(req.repo_path, req.target_file, llm)
-    return res
+    try:
+        llm = LLMProvider(provider=req.provider, api_key=req.api_key)
+        res = agent_engine.generate_unit_tests(req.repo_path, req.target_file, llm)
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/agent/review-pr")
 def review_pr(req: ReviewPRRequest):
-    llm = LLMProvider(provider=req.provider, api_key=req.api_key)
-    res = agent_engine.review_pr(req.git_diff_or_code, llm)
-    return res
+    try:
+        llm = LLMProvider(provider=req.provider, api_key=req.api_key)
+        res = agent_engine.review_pr(req.git_diff_or_code, llm)
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/agent/create-pr")
 def create_pull_request(req: CreatePRRequest):
-    res = repo_manager.create_github_pr(
-        repo_owner_repo=req.repo_owner_repo,
-        branch_name=req.branch_name,
-        commit_message=req.commit_message,
-        pr_title=req.pr_title,
-        pr_body=req.pr_body,
-        modified_files=req.modified_files,
-        token=req.github_token
-    )
-    if res.get("status") == "error":
-        raise HTTPException(status_code=400, detail=res.get("message"))
-    return res
+    try:
+        res = repo_manager.create_github_pr(
+            repo_owner_repo=req.repo_owner_repo,
+            branch_name=req.branch_name,
+            commit_message=req.commit_message,
+            pr_title=req.pr_title,
+            pr_body=req.pr_body,
+            modified_files=req.modified_files,
+            token=req.github_token
+        )
+        if res.get("status") == "error":
+            raise HTTPException(status_code=400, detail=res.get("message"))
+        return res
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
