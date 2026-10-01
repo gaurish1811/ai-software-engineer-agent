@@ -70,37 +70,46 @@ class LLMProvider:
         if not key:
             raise ValueError("Gemini API key missing. Please configure GEMINI_API_KEY in settings or environment.")
 
-        model_name = self.model or settings.GEMINI_MODEL
-
-        # Models to try in order — newer models first for new AI Studio accounts
-        models_to_try = [model_name, "gemini-2.0-flash", "gemini-2.0-flash-lite",
-                         "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
-        models_to_try = list(dict.fromkeys(models_to_try))  # deduplicate
-
+        is_new_format = key.startswith("AQ.") or key.startswith("ya29.")
         payload = {
             "system_instruction": {"parts": [{"text": system_prompt}]},
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.2, "maxOutputTokens": 8192}
         }
 
-        # AQ. keys use x-goog-api-key header; legacy AIza. keys use ?key= param
-        is_new_format = key.startswith("AQ.") or key.startswith("ya29.")
-        last_error = ""
+        def make_request(client, url, json_body):
+            if is_new_format:
+                return client.post(url, headers={"x-goog-api-key": key, "Content-Type": "application/json"}, json=json_body)
+            return client.post(url, params={"key": key}, json=json_body)
+
+        def list_models(client, version):
+            if is_new_format:
+                r = client.get(f"https://generativelanguage.googleapis.com/{version}/models",
+                               headers={"x-goog-api-key": key})
+            else:
+                r = client.get(f"https://generativelanguage.googleapis.com/{version}/models",
+                               params={"key": key})
+            if r.status_code == 200:
+                return r.json().get("models", [])
+            return []
 
         with httpx.Client(timeout=120.0) as client:
-            for api_version in ["v1beta", "v1"]:
-                for m in models_to_try:
-                    url = f"https://generativelanguage.googleapis.com/{api_version}/models/{m}:generateContent"
-                    headers = {"Content-Type": "application/json", "x-goog-api-key": key}
-                    if is_new_format:
-                        resp = client.post(url, headers=headers, json=payload)
-                    else:
-                        resp = client.post(url, params={"key": key}, json=payload)
+            # Discover available models dynamically
+            for version in ["v1beta", "v1"]:
+                models = list_models(client, version)
+                for m in models:
+                    name = m.get("name", "")  # e.g. "models/gemini-2.0-flash"
+                    supported = m.get("supportedGenerationMethods", [])
+                    if "generateContent" not in supported:
+                        continue
+                    model_id = name.split("/")[-1]  # strip "models/" prefix
+                    url = f"https://generativelanguage.googleapis.com/{version}/models/{model_id}:generateContent"
+                    resp = make_request(client, url, payload)
                     if resp.status_code == 200:
                         data = resp.json()
                         return data["candidates"][0]["content"]["parts"][0]["text"]
-                    last_error = resp.text
-        raise ValueError(f"Gemini API error — no working model found. Last error: {last_error}")
+
+        raise ValueError("Gemini API: authenticated but no working model found. Check API key permissions.")
 
     def _call_ollama(self, prompt: str, system_prompt: str) -> str:
         model_name = self.model or settings.OLLAMA_MODEL
