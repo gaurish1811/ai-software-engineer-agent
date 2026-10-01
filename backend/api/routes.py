@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
+import httpx
+import os
 from backend.core.repo_manager import RepoManager
 from backend.core.code_analyzer import CodeAnalyzer
 from backend.core.llm_provider import LLMProvider
@@ -70,6 +72,28 @@ def health_check():
         "active_llm_provider": settings.DEFAULT_PROVIDER,
         "github_token_configured": bool(settings.GITHUB_TOKEN or False)
     }
+
+@router.get("/debug/models")
+def debug_list_models():
+    """Lists available Gemini models for the configured API key."""
+    key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
+    if not key:
+        return {"error": "GEMINI_API_KEY not set"}
+    is_new_format = key.startswith("AQ.") or key.startswith("ya29.")
+    results = {}
+    with httpx.Client(timeout=30.0) as client:
+        for version in ["v1beta", "v1"]:
+            url = f"https://generativelanguage.googleapis.com/{version}/models"
+            if is_new_format:
+                r = client.get(url, headers={"x-goog-api-key": key})
+            else:
+                r = client.get(url, params={"key": key})
+            results[version] = {
+                "status": r.status_code,
+                "models": [m["name"] for m in r.json().get("models", [])] if r.status_code == 200 else r.text
+            }
+    return {"key_prefix": key[:10] + "...", "is_new_format": is_new_format, "results": results}
+
 
 @router.post("/repo/clone")
 def clone_repo(req: CloneRepoRequest):
