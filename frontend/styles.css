@@ -375,7 +375,15 @@ body {
     min-height: 400px;
 }
 
-/* Code Explainer Grid */
+/* Code Explainer Stack Layout */
+.code-explainer-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1;
+}
+
+/* Code Explainer Grid (legacy, kept for reference) */
 .code-explainer-grid {
     display: grid;
     grid-template-columns: 1.2fr 0.8fr;
@@ -399,7 +407,6 @@ body {
     color: var(--text-main);
     line-height: 1.6;
     overflow-y: auto;
-    max-height: 550px;
     padding-right: 0.5rem;
 }
 

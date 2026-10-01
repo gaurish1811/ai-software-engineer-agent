@@ -333,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await resp.json();
             if (data.explanation_markdown) {
                 elements.codeExplainOutput.innerHTML = marked.parse(data.explanation_markdown);
+                document.getElementById("explain-output-card")?.scrollIntoView({ behavior: "smooth" });
             } else {
                 elements.codeExplainOutput.innerHTML = `<p style="color: var(--accent-rose)">${data.detail || "Error generating code explanation."}</p>`;
             }
