@@ -72,9 +72,10 @@ class LLMProvider:
 
         model_name = self.model or settings.GEMINI_MODEL
 
-        # Try multiple models in order of availability
-        models_to_try = [model_name, "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"]
-        models_to_try = list(dict.fromkeys(models_to_try))  # deduplicate preserving order
+        # Models to try in order — newer models first for new AI Studio accounts
+        models_to_try = [model_name, "gemini-2.0-flash", "gemini-2.0-flash-lite",
+                         "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+        models_to_try = list(dict.fromkeys(models_to_try))  # deduplicate
 
         payload = {
             "system_instruction": {"parts": [{"text": system_prompt}]},
@@ -82,16 +83,16 @@ class LLMProvider:
             "generationConfig": {"temperature": 0.2, "maxOutputTokens": 8192}
         }
 
-        # Detect key type: OAuth token (AQ...) vs API key (AIza...)
-        is_oauth = key.startswith("AQ.") or key.startswith("ya29.")
+        # AQ. keys use x-goog-api-key header; legacy AIza. keys use ?key= param
+        is_new_format = key.startswith("AQ.") or key.startswith("ya29.")
         last_error = ""
 
         with httpx.Client(timeout=120.0) as client:
             for api_version in ["v1beta", "v1"]:
                 for m in models_to_try:
                     url = f"https://generativelanguage.googleapis.com/{api_version}/models/{m}:generateContent"
-                    if is_oauth:
-                        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+                    headers = {"Content-Type": "application/json", "x-goog-api-key": key}
+                    if is_new_format:
                         resp = client.post(url, headers=headers, json=payload)
                     else:
                         resp = client.post(url, params={"key": key}, json=payload)
